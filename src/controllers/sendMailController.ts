@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { resolve } from 'path';
 import { getCustomRepository } from "typeorm";
 import { SurveysRepository } from "../repositories/SurveysRepository";
 import { SurveysUsersRepository } from "../repositories/SurveysUsersRepository";
@@ -14,9 +15,9 @@ class SendMailController {
       const surveysRepository = getCustomRepository(SurveysRepository);
       const surveysUsersRepository = getCustomRepository(SurveysUsersRepository);
 
-      const userAlreadyExists = await usersRepository.findOne({ email });
+      const user = await usersRepository.findOne({ email });
 
-      if (!userAlreadyExists){
+      if (!user){
          res.status(400).json({ error: "User does not exists" })
       }
 
@@ -26,16 +27,34 @@ class SendMailController {
          res.status(400).json({ error: "survey does not exists" })
       }
 
-      const surveyUser = surveysUsersRepository.create({
-         user_id: userAlreadyExists.id,
-         survey_id
+      const surveyUserAlreadyExists = await surveysUsersRepository.findOne({
+         where: [{user_id: user.id}, {value: null}]
       })
 
+      const variables = {
+         name: user.name, 
+         title: survey.title, 
+         description: survey.description,
+         user_id: user.id,
+         link: process.env.URL_MAIL
+      }
+
+      const npsPath = resolve(__dirname, "..", "views", "emails", "npsMail.hbs");
+
+      if (surveyUserAlreadyExists) {
+         await SendMailService.send(email, survey.title, variables, npsPath);
+         return res.json(surveyUserAlreadyExists);
+      }
+      
+      await SendMailService.send(email, survey.title, variables, npsPath);
+      
+      //salvar informações na tabela
+      const surveyUser = surveysUsersRepository.create({
+         user_id: user.id,
+         survey_id
+      })
+      
       await surveysUsersRepository.save(surveyUser);
-
-      await SendMailService.send(email, survey.title, survey.description);
-
-      return res.json(surveyUser);
    }
 }
 
