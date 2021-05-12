@@ -15,8 +15,12 @@ class AnswerController {
          id: String(u)
       })
 
+      if (value > 10 || value < 0){
+         return res.status(400).json({ error: "Survey value out of scope" });
+      }
+
       if (!surveyUser) {
-         return res.status(400).json({ error: "Survey does not exists to this user" })
+         return res.status(400).json({ error: "Survey does not exists to this user" });
       }
 
       surveyUser.value = Number(value);
