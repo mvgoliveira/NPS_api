@@ -1,4 +1,5 @@
 import { getCustomRepository } from "typeorm";
+import { AppError } from "../errors/appError";
 import { SurveysUsersRepository } from "../repositories/SurveysUsersRepository";
 
 
@@ -16,11 +17,11 @@ class AnswerController {
       })
 
       if (value > 10 || value < 0){
-         return res.status(400).json({ error: "Survey value out of scope" });
+         throw new AppError("Survey value out of scope");
       }
 
       if (!surveyUser) {
-         return res.status(400).json({ error: "Survey does not exists to this user" });
+         throw new AppError("Survey does not exists to this user");
       }
 
       surveyUser.value = Number(value);
